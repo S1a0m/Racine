@@ -1,12 +1,12 @@
 package racine;
 
 public class RacineRegister {
-	private String appId;   // app name or website name
-	private String userId;  // user name, email or phone number
-	private String password;
+	
+	private String appId, userId, password;   // app name or website name
+											  // user name, email or phone number
 	
 	public RacineRegister(String pappId, String puserId, String ppassword) {
-		// definition du constructeur
+		// constructor definition
 		appId = pappId;
 		userId = puserId;
 		password = ppassword;
@@ -14,15 +14,13 @@ public class RacineRegister {
 	}
 	
 	public boolean register_user() {
-		/* enregistre les donnees de l'utilisateur
-		 * dans une BDD
-		 */
+		// register user data in a data base
 		return true;
 	}
 	
 	public String make_key() {
-		/* cette methode cree la cle unique
-		 * relative aux renseignements de l'utilisateur
+		/* create unique key about
+		 * user information
 		 */
 		return "key"; 
 	}
