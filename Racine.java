@@ -1,5 +1,6 @@
 package racine;
 
+import java.io.Console;
 import java.sql.*;
 import java.util.*;
 
@@ -26,6 +27,7 @@ public class Racine {
 		
 		int largs = args.length;
 		Scanner entry = new Scanner(System.in);
+		Console console = System.console();
 		
 		// treatment
 		switch (largs) {
@@ -35,20 +37,26 @@ public class Racine {
 			if (args[0].equals("-n") && args[2].equals("-u")) {
 				
 				while (true) {
-					// entrer le mot de passe sans affichage a l'ecran
+					// entrer le mot de passe sans affichage a l'ecran normally
 					System.out.print("Password: ");
-					String password = entry.nextLine();
-					entry.nextLine();       // empty entry
+					char[] password = console.readPassword();
+					// System.out.println(password);
+			
 					// confirmation
-					System.out.print("Confirm: ");
-					String confirm = entry.nextLine();
+					System.out.print("Confirm:  ");
+					char[] confirm = console.readPassword();
+					// System.out.println(confirm);
 					
-					if (password.equals(confirm)) {
-						RacineRegister register = new RacineRegister(args[1], args[3], confirm);
-						register.register_r();
-						
-						System.out.println("KEY : " + register.key_r());
-						System.out.println("Take a photo of the key.");
+					
+					if (Arrays.equals(password, confirm)) {
+						Register_r register = new Register_r(args[1], args[3], confirm);
+						if (register.register_r() == true) {
+							
+							System.out.println("KEY : " + register.key_r());
+							System.out.println("Take a photo of the key.");
+						}
+						else
+							System.out.println("ERROR: ...");
 						break;
 					}
 					else {
@@ -59,20 +67,23 @@ public class Racine {
 				}
 			}
 			else if (args[0].equals("-r") && args[2].equals("-k")) {
-				System.out.println("Identifiants relatifs a: " + args[0]);
-				read_info(args[1], args[3]);
+				if (read_r(args[1], args[3]) == true) {
+					System.out.println("Identifiants relatifs a: " + args[0]);
+					read_r(args[1], args[3]);
+				}
 			}
 			else if (args[0].equals("-d") && args[2].equals("-k")) {
 				System.out.print("Are you sure you want to delete info (y/n)? ");
 				String yn = entry.nextLine();
 				
 				if (yn.equals("y") || yn.equals("Y")) {
-					if (delete_info(args[1], args[3]) == true) { // supprimer si possible
+					if (delete_r(args[1], args[3]) == true) { // supprimer si possible
 						System.out.println("DELETE : ok");
 					}
 				}
 				else 
 					System.out.println("Bye");
+				
 				
 			}
 			else
@@ -87,12 +98,12 @@ public class Racine {
 				String yn = entry.nextLine();
 				
 				if (yn.equals("y") || yn.equals("Y")) {
-					delete_info(args[1], "test");
-					System.out.println("DELETE : ok");
+					if (delete_r(args[1], null) == true) {
+						System.out.println("DELETE : ok");
+					}
 				}
 				else 
-					System.out.println(Racine.menu);
-			
+					System.out.println("Bye");
 			}
 			else {
 				System.out.println(Racine.menu);
@@ -106,18 +117,10 @@ public class Racine {
 		entry.close();
 	}
 	
-	/*public static boolean db_exist() {
-		
-		// verifier l'existence de la BDD avant de lire
-		// ou supprimer les informations
-		
-		return true;
-	}*/
-	
 	// fonction d'affichage des renseignements
 	// relatifs a l'utilisateur
 	
-	public static void read_info(String appId, String key) {
+	public static boolean read_r(String appId, String key) {
 		
 		// doit retourner les renseignements relatifs
 		// au site ou a l'application de l'utilisateur
@@ -128,9 +131,9 @@ public class Racine {
 			connect.setAutoCommit(false);
 			
 			state = connect.createStatement();
-			String query = "SELECT userId, password WHERE appId=" + appId + "AND key=" + key + ";";
+			String query = "SELECT user, password WHERE app=" + appId + "AND key=" + key + ";";
 			ResultSet result = state.executeQuery(query);
-			String userId = result.getString("userId");
+			String userId = result.getString("user");
 			String password = result.getString("password");
 			String answer = "User: " + userId + "\n"
 					+ "Password: " + password;
@@ -139,15 +142,17 @@ public class Racine {
 			result.close();
 			state.close();
 			connect.close();
+			return true;
 		}
 		catch (Exception e) {
-			System.err.println(e.getClass().getName() + ": " + e.getMessage());
+			// System.err.println(e.getClass().getName() + ": " + e.getMessage());
 			System.out.println("ERROR: data not found");
 			System.exit(0);
+			return false;
 		} 
 	}
 	
-	public static boolean delete_info(String appId, String key) {
+	public static boolean delete_r(String appId, String key) {
 		
 		// doit supprimer des renseignements 
 		// - nom du site ou du processus
@@ -159,11 +164,11 @@ public class Racine {
 			
 			state = connect.createStatement();
 			if (key == null) {
-				String query = "DELETE FROM Racine WHERE appId=" + appId;
+				String query = "DELETE FROM racine WHERE app=" + appId;
 				state.executeUpdate(query);
 			}
 			else {
-				String query = "DELETE FROM Racine WHERE appId=" + appId + "AND key=" + key + ";";
+				String query = "DELETE FROM racine WHERE app=" + appId + "AND key=" + key + ";";
 				state.executeUpdate(query);
 			}
 			connect.commit();
@@ -172,7 +177,7 @@ public class Racine {
 			return true;
 		}
 		catch (Exception e) {
-			System.err.println(e.getClass().getName() + ": " + e.getMessage());
+			// System.err.println(e.getClass().getName() + ": " + e.getMessage());
 			System.out.println("ERROR: data not found");
 			System.exit(0);
 			return false;
