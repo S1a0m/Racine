@@ -1,5 +1,6 @@
 package racine;
 
+import java.sql.*;
 import java.util.*;
 
 public class Racine {
@@ -17,6 +18,9 @@ public class Racine {
 			+ "read            :   racine -r <site/app> -k <key>\n"
 			+ "delete user     :   racine -d <site/app> -k <key>\n"
 			+ "delete site/app :   racine -d <site/app>";
+	
+	private static Connection connect = null;
+	private static Statement state = null;
 
 	public static void main(String[] args) {
 		
@@ -41,9 +45,9 @@ public class Racine {
 					
 					if (password.equals(confirm)) {
 						RacineRegister register = new RacineRegister(args[1], args[3], confirm);
-						register.register_user();
+						register.register_r();
 						
-						System.out.println("KEY : " + register.make_key());
+						System.out.println("KEY : " + register.key_r());
 						System.out.println("Take a photo of the key.");
 						break;
 					}
@@ -55,6 +59,7 @@ public class Racine {
 				}
 			}
 			else if (args[0].equals("-r") && args[2].equals("-k")) {
+				System.out.println("Identifiants relatifs a: " + args[0]);
 				read_info(args[1], args[3]);
 			}
 			else if (args[0].equals("-d") && args[2].equals("-k")) {
@@ -62,8 +67,9 @@ public class Racine {
 				String yn = entry.nextLine();
 				
 				if (yn.equals("y") || yn.equals("Y")) {
-					delete_info(args[1], args[3]);
-					System.out.println("DELETE : ok");
+					if (delete_info(args[1], args[3]) == true) { // supprimer si possible
+						System.out.println("DELETE : ok");
+					}
 				}
 				else 
 					System.out.println("Bye");
@@ -96,26 +102,49 @@ public class Racine {
 		default:
 			System.out.println(Racine.menu);
 		}
+		
+		entry.close();
 	}
 	
-	public static boolean db_exist() {
+	/*public static boolean db_exist() {
 		
 		// verifier l'existence de la BDD avant de lire
 		// ou supprimer les informations
 		
 		return true;
-	}
+	}*/
 	
 	// fonction d'affichage des renseignements
 	// relatifs a l'utilisateur
 	
-	public static String read_info(String appId, String key) {
+	public static void read_info(String appId, String key) {
 		
 		// doit retourner les renseignements relatifs
 		// au site ou a l'application de l'utilisateur
 		// essentiellement
-		
-		return "1";  
+		try {
+			Class.forName("org.sqlite.JDBC");
+			connect = DriverManager.getConnection("jdbc:sqlite:racine.db");
+			connect.setAutoCommit(false);
+			
+			state = connect.createStatement();
+			String query = "SELECT userId, password WHERE appId=" + appId + "AND key=" + key + ";";
+			ResultSet result = state.executeQuery(query);
+			String userId = result.getString("userId");
+			String password = result.getString("password");
+			String answer = "User: " + userId + "\n"
+					+ "Password: " + password;
+			System.out.println(answer);
+			
+			result.close();
+			state.close();
+			connect.close();
+		}
+		catch (Exception e) {
+			System.err.println(e.getClass().getName() + ": " + e.getMessage());
+			System.out.println("ERROR: data not found");
+			System.exit(0);
+		} 
 	}
 	
 	public static boolean delete_info(String appId, String key) {
@@ -123,7 +152,31 @@ public class Racine {
 		// doit supprimer des renseignements 
 		// - nom du site ou du processus
 		// - renseignements retournes par la clee
+		try {
+			Class.forName("org.sqlite.JDBC");
+			connect = DriverManager.getConnection("jdbc:sqlite:racine.db");
+			connect.setAutoCommit(false);
+			
+			state = connect.createStatement();
+			if (key == null) {
+				String query = "DELETE FROM Racine WHERE appId=" + appId;
+				state.executeUpdate(query);
+			}
+			else {
+				String query = "DELETE FROM Racine WHERE appId=" + appId + "AND key=" + key + ";";
+				state.executeUpdate(query);
+			}
+			connect.commit();
+			state.close();
+			connect.close();
+			return true;
+		}
+		catch (Exception e) {
+			System.err.println(e.getClass().getName() + ": " + e.getMessage());
+			System.out.println("ERROR: data not found");
+			System.exit(0);
+			return false;
+		} 
 		
-		return true;
 	}
 }
